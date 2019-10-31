@@ -1,0 +1,27 @@
+///fold:
+var actionPrior = Categorical({vs: ['a', 'b', 'c'], ps: [1/3, 1/3, 1/3]})
+var haveCookie = function(obj) {return obj == 'cookie'};
+var priceSetting = function(state, action) {
+  return (action == 'a' ? categorical({vs: ['unresponsive', 'cooperative', 'self-serving'], ps: [.2, .4, .4]}) :
+          action == 'b' ? categorical({vs: ['unresponsive', 'cooperative', 'self-serving'], ps: [.4, .2, .4]}) :
+          action == 'c' ? categorical({vs: ['unresponsive', 'cooperative', 'self-serving'], ps: [.4, .4, .2]}) :
+          'nothing');
+}
+///
+var chooseAction = function(goalSatisfied, transition, state) {
+  return Infer({method: 'enumerate'}, function() {
+    var action = sample(actionPrior)
+    condition(goalSatisfied(transition(state, action)))
+    return action;
+  })
+}
+
+var goalPosterior = Infer({method: 'enumerate'}, function() {
+  var goal = categorical({vs: ['unresponsive','cooperative', 'self-serving'], ps: [1/3, 1/3, 1/3]})
+  var goalSatisfied = function(outcome) {return outcome == goal};
+  var actionDist = chooseAction(goalSatisfied, priceSetting, 'state')
+  factor(actionDist.score('b'));
+  return goal;
+})
+
+viz.auto(goalPosterior);
